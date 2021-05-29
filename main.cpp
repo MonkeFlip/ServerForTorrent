@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #define BUF_SIZE 500
 
@@ -80,14 +82,32 @@ int main(int argc, char *argv[])
     //file= fopen(filename.c_str(),"rb");
     std::string filename;
     std::ifstream fileList;
-    fileList.open("sabaton.txt");
+    //fileList.open("03d9a5ea768746a22140072dc6d5e0332d52efb1.txt");
     int counter=0;
     for (;;) {
         peer_addr_len = sizeof(struct sockaddr_storage);
         nread = recvfrom(sockfd, buf, BUF_SIZE, 0,
                          (struct sockaddr *) &peer_addr, &peer_addr_len);
         if (nread == -1)
+        {
             continue;               /* Ignore failed request */
+        }
+        if(nread==68)
+        {
+            std::ostringstream os;
+            os.fill('0');
+            os<<std::hex;
+            for(int i=28;i<48;i++)
+            {
+                os<<std::setw(2)<<(unsigned int)buf[i];
+            }
+            os<<".txt";
+            fileList.open(os.str());
+            std::cout<<os.str()<<std::endl;
+            std::cout<<std::dec;
+            continue;
+            //std::cout<<"Received buffer: "<<buf<<std::endl;
+        }
 
         char host[NI_MAXHOST], service[NI_MAXSERV];
 
@@ -102,7 +122,7 @@ int main(int argc, char *argv[])
         index+=buf[7];
         index<<=8;
         index+=buf[8];
-        std::cout<<"Index: "<<index<<std::endl;
+        //std::cout<<"Index: "<<index<<std::endl;
         begin_buf=buf[9];
         begin_buf<<=24;
         begin+=begin_buf;
@@ -126,16 +146,16 @@ int main(int argc, char *argv[])
         {
             getline(fileList,filename);
         }
-        std::cout<<"filename: "<<filename<<std::endl;
+        //std::cout<<"filename: "<<filename<<std::endl;
         index_mem=index;
         blockBuffer=(unsigned char*)malloc(length);
         file= fopen(filename.c_str(),"rb");
         fseek(file,begin,SEEK_SET);
         readBytesFromFile=fread(blockBuffer,1,length,file);
         fclose(file);
-        std::cout<<readBytesFromFile<<std::endl;
+        //std::cout<<readBytesFromFile<<std::endl;
         counter++;
-        std::cout<<counter<<std::endl;
+        //std::cout<<counter<<std::endl;
         sendPiece(sockfd,index,begin,blockBuffer,readBytesFromFile,peer_addr,peer_addr_len);
         begin+=readBytesFromFile;
         index=0;
